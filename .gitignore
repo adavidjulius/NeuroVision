@@ -1,5 +1,12 @@
+venv/
 __pycache__/
 *.pyc
+*.pyo
+*.pt
+*.pth
+assets/snapshot*.jpg
 .DS_Store
-known_faces/*.jpg
-assets/sounds/*.wav
+.env
+*.egg-info/
+dist/
+build/
