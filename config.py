@@ -7,7 +7,7 @@
 # ── Camera ────────────────────────────────────
 # 0 = built-in webcam
 # 1 = iPhone Continuity Camera / DroidCam (try 1 or 2 if 0 doesn't work)
-CAMERA_INDEX = 0
+CAMERA_INDEX = 1
 
 FRAME_WIDTH  = 1280
 FRAME_HEIGHT = 720
