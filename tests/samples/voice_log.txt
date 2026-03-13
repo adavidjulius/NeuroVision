@@ -1,2 +1,2 @@
-[16:49:35]  🔊  Vehicle ahead, very close
-[16:49:35]  🔊  Person on your left, nearby
+[16:51:47]  🔊  Vehicle ahead, ~1.5m
+[16:51:47]  🔊  Person on your left, ~1m
