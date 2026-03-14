@@ -10,3 +10,5 @@ assets/snapshot*.jpg
 *.egg-info/
 dist/
 build/
+assistant_config.json
+assistant_owner_voice.npy
