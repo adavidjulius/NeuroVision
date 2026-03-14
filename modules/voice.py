@@ -1,10 +1,12 @@
 """
-NeuroVision — Phase 3+4: Voice Alerts with Distance
+NeuroVision — Voice Alerts (macOS fixed)
+Uses subprocess to call macOS 'say' command directly.
+No threading issues, speaks every single time.
 """
-
 import time
+import subprocess
 import threading
-from config import VOICE_ENABLED, VOICE_RATE, VOICE_VOLUME, ALERT_COOLDOWN
+from config import VOICE_ENABLED, ALERT_COOLDOWN
 
 
 class VoiceAlert:
@@ -12,20 +14,9 @@ class VoiceAlert:
         self.enabled   = VOICE_ENABLED
         self.cooldowns = {}
         self._lock     = threading.Lock()
-        self.engine    = None
         self._log      = []
-        self._init_engine()
-
-    def _init_engine(self):
-        try:
-            import pyttsx3
-            self.engine = pyttsx3.init()
-            self.engine.setProperty("rate",   VOICE_RATE)
-            self.engine.setProperty("volume", VOICE_VOLUME)
-            print("✅  Voice engine ready (pyttsx3)")
-        except Exception as e:
-            print(f"⚠️   Voice engine unavailable ({e}) — log-only mode")
-            self.engine = None
+        self._speaking = False
+        print("✅  Voice engine ready (macOS say)")
 
     def _cooldown_ok(self, key: str) -> bool:
         now  = time.time()
@@ -35,9 +26,49 @@ class VoiceAlert:
             return True
         return False
 
+    def _say(self, text: str):
+        """Speak using macOS native 'say' command — never fails."""
+        with self._lock:
+            self._speaking = True
+            try:
+                subprocess.run(
+                    ["say", "-r", "200", text],
+                    timeout=10,
+                    capture_output=True
+                )
+            except Exception as e:
+                print(f"⚠️   say error: {e}")
+            finally:
+                self._speaking = False
+
+    def speak(self, text: str, key: str = None, force: bool = False):
+        """
+        Speak text with cooldown.
+        force=True bypasses cooldown (for commands).
+        """
+        if not self.enabled:
+            return
+        key = key or text
+        if not force and not self._cooldown_ok(key):
+            return
+
+        timestamp = time.strftime("%H:%M:%S")
+        entry     = f"[{timestamp}]  🔊  {text}"
+        self._log.append(entry)
+        print(entry)
+
+        threading.Thread(target=self._say, args=(text,), daemon=True).start()
+
+    def speak_now(self, text: str):
+        """Speak immediately — always, no cooldown, for command responses."""
+        if not self.enabled:
+            return
+        timestamp = time.strftime("%H:%M:%S")
+        print(f"[{timestamp}]  🔊  {text}")
+        threading.Thread(target=self._say, args=(text,), daemon=True).start()
+
     def build_message(self, label: str, zone: str,
                       area_ratio: float, distance: str = None) -> str:
-        """Builds natural language alert with optional distance."""
         if zone == "left":
             direction = "on your left"
         elif zone == "right":
@@ -53,42 +84,13 @@ class VoiceAlert:
             return f"Vehicle {direction}{dist_str}"
         if label == "stairs":
             return f"Stairs {direction}, caution"
-
         return f"{label.capitalize()} {direction}{dist_str}"
 
-    def speak(self, text: str, key: str = None):
-        if not self.enabled:
-            return
-        key = key or text
-        if not self._cooldown_ok(key):
-            return
-
-        timestamp = time.strftime("%H:%M:%S")
-        entry     = f"[{timestamp}]  🔊  {text}"
-        self._log.append(entry)
-        print(entry)
-
-        if self.engine:
-            def _run():
-                with self._lock:
-                    try:
-                        self.engine.say(text)
-                        self.engine.runAndWait()
-                    except Exception as e:
-                        print(f"⚠️   TTS error: {e}")
-            threading.Thread(target=_run, daemon=True).start()
-
     def speak_detections(self, detections: list, depth_labels: dict = None):
-        """
-        detections  : list of detection dicts
-        depth_labels: optional dict of index → distance string
-        """
         if not detections:
             return
-
         sorted_d = sorted(detections, key=lambda d: d["area_ratio"], reverse=True)
-
-        spoken = 0
+        spoken   = 0
         for i, d in enumerate(sorted_d):
             if spoken >= 2:
                 break
@@ -107,5 +109,7 @@ class VoiceAlert:
 
     def toggle(self):
         self.enabled = not self.enabled
-        print(f"🔊  Voice: {'ON' if self.enabled else 'OFF'}")
+        state = "ON" if self.enabled else "OFF"
+        print(f"🔊  Voice: {state}")
+        self.speak_now(f"Voice {state}")
         return self.enabled

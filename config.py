@@ -14,8 +14,8 @@ FRAME_HEIGHT = 720
 FPS_TARGET   = 30
 
 # ── Detection ─────────────────────────────────
-YOLO_MODEL        = "yolov8n.pt"    # nano = fastest; swap to yolov8s.pt for more accuracy
-CONFIDENCE_THRESH = 0.45            # ignore detections below this confidence
+YOLO_MODEL = "yolov8s.pt"    # nano = fastest; swap to yolov8s.pt for more accuracy
+CONFIDENCE_THRESH = 0.60            # ignore detections below this confidence
 NMS_IOU_THRESH    = 0.45
 
 # Objects that trigger alerts (COCO class names)
@@ -40,7 +40,7 @@ VOICE_VOLUME      = 1.0             # 0.0 – 1.0
 ALERT_COOLDOWN    = 3.0
 
 # ── Spatial Audio ─────────────────────────────
-SPATIAL_AUDIO_ENABLED = True
+SPATIAL_AUDIO_ENABLED = False
 # Frame zones: left = 0 to LEFT_ZONE, right = RIGHT_ZONE to frame width
 LEFT_ZONE_RATIO   = 0.35
 RIGHT_ZONE_RATIO  = 0.65
