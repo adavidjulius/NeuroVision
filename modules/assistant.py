@@ -446,3 +446,8 @@ class VoiceAssistant:
     @property
     def owner_name(self) -> str:
         return self.config["owner_name"]
+
+# ── Patch: add identify command to _handle_command ────────────
+# In your next session add this to _handle_command:
+# elif "what is this" or "identify" or "what am i holding":
+#     self._cmd_identify_object()
