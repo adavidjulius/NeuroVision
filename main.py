@@ -93,10 +93,10 @@ def main():
     face_id   = FaceIdentifier()
     ocr       = TextReader()
     danger    = DangerDetector()
-assistant = VoiceAssistant(voice, detector, face_id, ocr, depth_est)
+    assistant = VoiceAssistant(voice, detector, face_id, ocr, depth_est)
 
-    if not os.path.exists(CONFIG_PATH):
-        assistant.first_run_setup()
+    if False:  # skip first run
+        pass
 
     # ── Shared buffers ────────────────────────────────────────
     frame_buf      = FrameBuffer()
