@@ -1,40 +1,37 @@
 # NeuroVision — Full Requirements
-# Install: pip install -r requirements.txt
+# pip install -r requirements.txt
 
-# ── Core ──────────────────────────────────────────────────────
-opencv-python==4.9.0.80
-numpy==1.26.4
-Pillow==10.3.0
+# Core
+opencv-python-headless
+numpy
+Pillow
 
-# ── AI / Vision ───────────────────────────────────────────────
-ultralytics==8.2.0
-torch==2.3.0
-torchvision==0.18.0
-timm==0.9.16
+# AI / Vision
+ultralytics
+torch
+torchvision
+timm
 
-# ── Depth ─────────────────────────────────────────────────────
-# MiDaS loads via torch.hub — no pip install needed
+# Face Detection (NO dlib/face-recognition — use mediapipe)
+mediapipe==0.10.30
 
-# ── Voice & Audio ─────────────────────────────────────────────
-pygame==2.5.2
-SpeechRecognition==3.10.0
-pyaudio==0.2.14
-vosk==0.3.45
+# OCR
+easyocr
 
-# ── Face Detection ────────────────────────────────────────────
-mediapipe==0.10.14
+# Voice
+pygame
+SpeechRecognition
+pyaudio
+vosk
 
-# ── OCR ───────────────────────────────────────────────────────
-easyocr==1.7.1
+# Mobile Server
+flask
+flask-socketio
+flask-cors
 
-# ── Mobile Server ─────────────────────────────────────────────
-flask==3.0.3
-flask-socketio==5.3.6
-flask-cors==4.0.1
-
-# ── Utilities ─────────────────────────────────────────────────
-python-dotenv==1.0.1
-setuptools
+# Utilities
 pyyaml
 psutil
 requests
+python-dotenv
+setuptools
