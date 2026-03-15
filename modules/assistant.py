@@ -456,3 +456,10 @@ class VoiceAssistant:
     # "read in tamil"  → ocr.set_language("tamil")
     # "read in hindi"  → ocr.set_language("hindi")
     # "read in english"→ ocr.set_language("english")
+
+    # ── Sprint 5 voice commands (add to _handle_command) ──────
+    # "where am i"         → nav.describe_current_location()
+    # "what room is this"  → nav.current_room
+    # "show me the map"    → nav.describe_map()
+    # "guide me"           → auto_mode + nav instructions
+    # "remember this room" → nav._save_map()
