@@ -451,3 +451,8 @@ class VoiceAssistant:
 # In your next session add this to _handle_command:
 # elif "what is this" or "identify" or "what am i holding":
 #     self._cmd_identify_object()
+
+    # ── Sprint 4: Language switching (add to _handle_command) ─
+    # "read in tamil"  → ocr.set_language("tamil")
+    # "read in hindi"  → ocr.set_language("hindi")
+    # "read in english"→ ocr.set_language("english")

@@ -71,3 +71,8 @@ KEY_QUIT          = ord("q")
 KEY_OCR           = ord("r")        # r = read text in frame
 KEY_TOGGLE_DEPTH  = ord("d")        # d = toggle depth map
 KEY_TOGGLE_VOICE  = ord("v")        # v = mute/unmute voice
+
+# ── Multi-language OCR (Sprint 4) ─────────────────────────────
+OCR_DEFAULT_LANGUAGE  = "auto"      # auto | english | tamil | hindi | multi
+OCR_TAMIL_ENABLED     = True
+OCR_HINDI_ENABLED     = True
