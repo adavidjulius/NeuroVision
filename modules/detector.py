@@ -1,13 +1,11 @@
 """
-NeuroVision — Phase 2: Object Detection
+NeuroVision — Detector (Clean Rewrite)
+Label smoothing — prevents flickering between similar classes.
 """
 import cv2
 import numpy as np
+from collections import defaultdict, Counter
 from ultralytics import YOLO
-
-import sys, os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from config import (
     YOLO_MODEL, CONFIDENCE_THRESH, NMS_IOU_THRESH,
     ALERT_CLASSES, LEFT_ZONE_RATIO, RIGHT_ZONE_RATIO,
@@ -18,23 +16,38 @@ from config import (
 class Detector:
     def __init__(self):
         print(f"🔍  Loading YOLO model: {YOLO_MODEL} ...")
-        self.model = YOLO(YOLO_MODEL)
+        self.model       = YOLO(YOLO_MODEL)
         self.class_names = self.model.names
+
+        # Label smoothing — track last N labels per zone
+        self._label_history = defaultdict(list)
+        self._SMOOTH_N      = 5  # smooth over 5 frames
+
         print(f"✅  YOLO ready — {len(self.class_names)} classes loaded")
 
-    def get_zone(self, cx: float, frame_width: int) -> str:
+    def get_zone(self, cx, frame_width) -> str:
         ratio = cx / frame_width
-        if ratio < LEFT_ZONE_RATIO:
-            return "left"
-        elif ratio > RIGHT_ZONE_RATIO:
-            return "right"
+        if ratio < LEFT_ZONE_RATIO:  return "left"
+        if ratio > RIGHT_ZONE_RATIO: return "right"
         return "center"
+
+    def _smooth_label(self, zone: str, label: str) -> str:
+        """
+        Returns the most common label seen in this zone
+        over last N frames — prevents flickering.
+        """
+        key = zone
+        self._label_history[key].append(label)
+        if len(self._label_history[key]) > self._SMOOTH_N:
+            self._label_history[key].pop(0)
+        # Return most common label
+        return Counter(self._label_history[key]).most_common(1)[0][0]
 
     def detect(self, frame: np.ndarray) -> list:
         h, w = frame.shape[:2]
         results = self.model(
             frame,
-            conf=CONFIDENCE_THRESH,
+            conf=0.65,          # higher = fewer false detections
             iou=NMS_IOU_THRESH,
             verbose=False,
         )[0]
@@ -43,18 +56,23 @@ class Detector:
         for box in results.boxes:
             cls_id = int(box.cls[0])
             label  = self.class_names[cls_id]
+
             if label not in ALERT_CLASSES:
                 continue
 
             conf        = float(box.conf[0])
-            x1, y1, x2, y2 = map(int, box.xyxy[0])
+            x1,y1,x2,y2 = map(int, box.xyxy[0])
             cx          = (x1 + x2) // 2
             cy          = (y1 + y2) // 2
-            area_ratio  = ((x2 - x1) * (y2 - y1)) / (w * h)
+            area_ratio  = ((x2-x1) * (y2-y1)) / (w * h)
             zone        = self.get_zone(cx, w)
 
+            # Smooth label to prevent flickering
+            smooth_label = self._smooth_label(zone, label)
+
             detections.append({
-                "label":      label,
+                "label":      smooth_label,
+                "raw_label":  label,
                 "confidence": conf,
                 "box":        (x1, y1, x2, y2),
                 "cx":         cx,
@@ -67,34 +85,33 @@ class Detector:
 
     def draw(self, frame: np.ndarray, detections: list) -> np.ndarray:
         for d in detections:
-            x1, y1, x2, y2 = d["box"]
-            label      = d["label"]
-            conf       = d["confidence"]
-            zone       = d["zone"]
-            area_ratio = d["area_ratio"]
+            x1,y1,x2,y2 = d["box"]
+            color = DANGER_COLOR if d["area_ratio"] > 0.20 else BOX_COLOR
 
-            color = DANGER_COLOR if area_ratio > 0.20 else BOX_COLOR
+            cv2.rectangle(frame, (x1,y1), (x2,y2), color, 2)
 
-            cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
-
-            corner, thick = 14, 3
-            for px, py, dx, dy in [
-                (x1, y1,  1,  1), (x2, y1, -1,  1),
-                (x1, y2,  1, -1), (x2, y2, -1, -1),
+            # Corner accents
+            c, t = 14, 3
+            for px,py,dx,dy in [
+                (x1,y1,1,1),(x2,y1,-1,1),
+                (x1,y2,1,-1),(x2,y2,-1,-1)
             ]:
-                cv2.line(frame, (px, py), (px + dx * corner, py), color, thick)
-                cv2.line(frame, (px, py), (px, py + dy * corner), color, thick)
+                cv2.line(frame,(px,py),(px+dx*c,py),color,t)
+                cv2.line(frame,(px,py),(px,py+dy*c),color,t)
 
             if SHOW_LABELS:
-                tag = f"{label}  {conf:.0%}  [{zone}]"
-                (tw, th), _ = cv2.getTextSize(
-                    tag, cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, FONT_THICKNESS
-                )
-                cv2.rectangle(frame, (x1, y1 - th - 10), (x1 + tw + 8, y1), color, -1)
-                cv2.putText(frame, tag, (x1 + 4, y1 - 5),
-                            cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, (0, 0, 0), FONT_THICKNESS)
+                tag = f"{d['label']} {d['confidence']:.0%} [{d['zone']}]"
+                (tw,th),_ = cv2.getTextSize(
+                    tag, cv2.FONT_HERSHEY_SIMPLEX,
+                    FONT_SCALE, FONT_THICKNESS)
+                cv2.rectangle(frame,
+                    (x1, y1-th-10),(x1+tw+8,y1),
+                    color, -1)
+                cv2.putText(frame, tag, (x1+4, y1-5),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    FONT_SCALE, (0,0,0), FONT_THICKNESS)
 
         cv2.putText(frame, f"Objects: {len(detections)}",
-                    (20, frame.shape[0] - 45),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, BOX_COLOR, 1)
+            (20, frame.shape[0]-45),
+            cv2.FONT_HERSHEY_SIMPLEX, 0.6, BOX_COLOR, 1)
         return frame
